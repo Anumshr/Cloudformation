@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Cloudformation template for EC2 instance with user data
+Parameters:
+  InstanceTypeParameter:
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.nano
+  SSHKey:
+    Description: Pick a valid key pair
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+ MyInstance1:
+  Type: AWS::EC2::Instance
+  Properties:
+   ImageId: ami-0dacb0c129b49f529
+   KeyName: !Ref SSHKey
+   SecurityGroupIds:
+     - !Ref MySecurityGroup
+   InstanceType: !Ref InstanceTypeParameter
+   AvailabilityZone: us-east-2a
+   UserData:
+     Fn::Base64 :
+       !Sub |
+         #!/bin/bash
+         sudo yum install httpd -y
+         sudo service httpd start
+         echo "Hello from cloudformation server1" > /var/www/html/index.html
+         echo END
+ MyInstance2:
+  Type: AWS::EC2::Instance
+  Properties:
+    ImageId: ami-0dacb0c129b49f529
+    KeyName: !Ref SSHKey
+    SecurityGroupIds:
+      - !Ref MySecurityGroup
+    InstanceType: !Ref InstanceTypeParameter
+    AvailabilityZone: us-east-2b
+    UserData:
+      Fn::Base64 :
+        !Sub |
+          #!/bin/bash
+          sudo yum install httpd -y
+          sudo service httpd start
+          echo "Hello from cloudformation server2" > /var/www/html/index.html
+          echo END
+
+ MySecurityGroup:
+  Type: AWS::EC2::SecurityGroup
+  Properties:
+    GroupDescription: Allow internet access
+    SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+ MyLoadbalancerSecurityGroup:
+  Type: AWS::EC2::SecurityGroup
+  Properties:
+    GroupDescription: Allow internet access
+    SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+
+ MyLoadBalancer:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+        LoadBalancerName: MyLoadBalancerCF
+        Instances:
+            - !Ref MyInstance1
+            - !Ref MyInstance2
+        AvailabilityZones:
+            - us-east-2a
+            - us-east-2b
+        Listeners:
+            - LoadBalancerPort: '80'
+              InstancePort: '80'
+              Protocol: HTTP
+        HealthCheck:
+            Target: HTTP:80/
+            HealthyThreshold: '3'
+            UnhealthyThreshold: '5'
+            Interval: '30'
+            Timeout: '5'
