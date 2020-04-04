@@ -8,6 +8,7 @@ Parameters:
       - t2.micro
       - t2.small
       - t2.nano
+      - t2.medium
   SSHKey:
     Description: Pick a valid key pair
     Type: AWS::EC2::KeyPair::KeyName
