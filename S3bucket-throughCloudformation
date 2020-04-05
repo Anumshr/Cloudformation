@@ -1,0 +1,55 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: This is for my first JSON scripting template
+Parameters:
+  BucketName:
+    Type: String
+    Description: Please use any DNS Compliance Bucket Name for this S3 bucket
+  VersionStatus:
+    Type: String
+    Default: Enabled
+    AllowedValues:
+    - Enabled
+    - Suspended
+    Description: 'Please select the version status of S3 bucket '
+Conditions:
+  VersionEnables:
+    Fn::Equals:
+    - Ref: VersionStatus
+    - Enabled
+  VersionSuspended:
+    Fn::Equals:
+    - Ref: VersionStatus
+    - Suspended
+Resources:
+  VersionedBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Ref: BucketName
+      VersioningConfiguration:
+        Status: Enabled
+    Condition: VersionEnables
+  NonVersionBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Ref: BucketName
+      VersioningConfiguration:
+        Status: Suspended
+    Condition: VersionSuspended
+Outputs:
+  VersionedBucketURL:
+    Description: This is endpoint of Versioned bucket
+    Value:
+      Fn::GetAtt:
+      - VersionedBucket
+      - DomainName
+    Condition: VersionEnables
+  NonVersionedBucketURL:
+    Description: This is endpoint of Non Versioned bucket
+    Value:
+      Fn::GetAtt:
+      - NonVersionBucket
+      - DomainName
+    Condition: VersionSuspended
